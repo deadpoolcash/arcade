@@ -311,12 +311,12 @@ const Dice = () => {
             )}
             {userBalance && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    User Balance: {userBalance / web3.LAMPORTS_PER_SOL}
+                    User Balance: {(userBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
                 </Typography>
             )}
             {reserveKeyBalance && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    Casino Balance: {reserveKeyBalance / web3.LAMPORTS_PER_SOL}
+                    Casino Balance: {(reserveKeyBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
                 </Typography>
             )}
             { isTestnet && connected ? (
