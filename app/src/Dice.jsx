@@ -22,7 +22,7 @@ const ratio = 5
 
 const Dice = () => {
     const [betSizes, setBetSizes] = useState([0.0001])
-    const [betSize, setBetSize] = useState(1);
+    const [betSize, setBetSize] = useState(0.0001);
     const [multiplier, setMultiplier] = useState(2);
     const [probability, setProbability] = useState(0);
     const [message, setMessage] = useState('');
@@ -63,7 +63,6 @@ const Dice = () => {
             setMessage('Please select a wallet')
             return
         }
-        console.log("handlePlaceBet")
         setMessage('Placing bet...');
         try {
             console.log({reservePDA, reserveKeyPDA, house, wallet, SLOT_HASHES_SYSVAR})
@@ -82,6 +81,8 @@ const Dice = () => {
 
             // Call the roll_dice function
             const setup = await program.methods.rollDice(seed, mult, bet, reserveKeyBump).accounts(accounts)
+
+            // simulate tx
             const ix = await setup.instruction();
             const recentBlockhash = (await connection.getLatestBlockhash()).blockhash
             console.log({recentBlockhash, seed, bet, mult})
@@ -92,29 +93,46 @@ const Dice = () => {
                 instructions: [ix],
             }).compileToV0Message();
 
-            // Create the VersionedTransaction
             const tx = new VersionedTransaction(message);
 
             const config = {
-                sigVerify: false,
+                // sigVerify: false,
                 accounts: {
-                    addresses: Object.keys(accounts),
+                    addresses: [
+                        wallet.publicKey.toBase58(),
+                        reservePDA.toBase58(),
+                        reserveKeyPDA.toBase58(),
+                        house.toBase58(),
+                        web3.SystemProgram.programId.toBase58(),
+                        SLOT_HASHES_SYSVAR.toBase58()
+                    ],
                     encoding: "base64"
                 },
                 commitment: 'confirmed',
                 replaceRecentBlockhash: true
             }
-            console.log({tx})
+            console.log({tx, config})
             const { value } = await connection.simulateTransaction(tx, config);
             console.log({value})
+
             if (value.err) {
-                setMessage('Error: ' + value.err)
+                if (typeof value.err === 'object') {
+                    for (const [key, val] of Object.entries(value.err)) {
+                        if (value.err.hasOwnProperty(key)) {
+                            console.error(`${key}: ${val}`);
+                            setMessage('Error: ' + key)
+                        }
+                    }
+                    console.error(value.logs)
+                }
             } else {
-                await setup.signers([]).rpc();
+                const tx = await setup.signers([]).rpc();
                 setMessage('Bet placed successfully!');
+                console.log('Transaction signature:', tx);
             }
 
-            console.log('Transaction signature:', tx);
+            // const tx = await setup.signers([]).rpc();
+
         } catch (error) {
             console.error('Error placing bet:', error);
             setMessage('Error placing bet.');
