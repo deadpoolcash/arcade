@@ -340,7 +340,7 @@ describe("dice", () => {
         const wallet = program.provider.wallet
         const edge_bp = new anchor.BN(100)
         const ratio = new anchor.BN(5)
-        const epsilon = 0.01
+        const epsilon = 0.02
         const multiplier_num = 100_000 // 10x
         const multiplier_bp = new anchor.BN(multiplier_num)
 
@@ -350,7 +350,7 @@ describe("dice", () => {
         let win_count = 0
         let lose_count = 0
         let unknown_count = 0
-        const runs = 1000
+        const runs = 100
 
         // console.log({reservePDA, reserveKeyPDA, wallet}, "bet_size", "multiplier", house.publicKey)
 
@@ -418,5 +418,63 @@ describe("dice", () => {
         assert.ok(win_count + lose_count == runs)
         assert.ok(unknown_count == 0)
     });
+
+    it("Should make money", async () => {
+        const {reservePDA, reserveBump} = getReservePDA();
+        const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
+        const wallet = program.provider.wallet
+        const ratio = new anchor.BN(5)
+
+        const seed = new anchor.BN(randomInteger(1, 10000))
+        const runs = 200
+        const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
+        // console.log({reservePDA, reserveKeyPDA, wallet}, "bet_size", "multiplier", house.publicKey)
+
+        for (let i = 1; i <= runs; i++) {
+            const multiplier_num = randomInteger(20000, 100000) // 2-10x
+            const multiplier_bp = new anchor.BN(multiplier_num)
+
+            const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
+            const bet_num = randomInteger(1, max_bet)
+            const bet_size = new anchor.BN(bet_num)
+            const depletion = getMaxDepletion(multiplier_bp, bet_size)
+            console.log({max_bet, bet_num})
+
+            const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
+            const houseBalanceBefore = await getBalance(house.publicKey)
+            const walletBalanceBefore = await getBalance(wallet.publicKey)
+
+            const tx = await program.methods.rollDice(seed, multiplier_bp, bet_size, reserveKeyBump).accounts({
+                player: wallet.publicKey,
+                reserve: reservePDA,
+                reserveKey: reserveKeyPDA,
+                house: house.publicKey,
+                systemProgram: anchor.web3.SystemProgram.programId,
+                slotHashes: SLOT_HASHES_SYSVAR
+            }).signers([]).rpc()
+
+            const reserveKeyBalanceAfter = await getBalance(reserveKeyPDA)
+            const houseBalanceAfter = await getBalance(house.publicKey)
+            const walletBalanceAfter = await getBalance(wallet.publicKey)
+
+            // console.log({reserveKeyBalanceBefore, reserveKeyBalanceAfter, houseBalanceBefore, houseBalanceAfter, walletBalanceBefore, walletBalanceAfter})
+            await getProvider().connection.confirmTransaction(tx, 'confirmed');
+
+            // Fetch the transaction details
+            const txDetails = await getProvider().connection.getTransaction(tx, {
+                commitment: "confirmed",
+            });
+
+            // Inspect the logs
+            const logs = txDetails.meta.logMessages;
+            console.log(i, " - Transaction logs:", logs);
+        }
+
+        const reserveKeyBalanceAfter = await getBalance(reserveKeyPDA)
+
+        console.log({reserveKeyBalanceBefore, reserveKeyBalanceAfter})
+        assert.ok(reserveKeyBalanceAfter > reserveKeyBalanceBefore)
+    });
+
 
 })

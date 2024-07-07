@@ -8,7 +8,6 @@ import { clusterApiUrl } from '@solana/web3.js';
 import idl from './idl.json';
 
 
-const multipliers = [2, 3, 5, 10];
 const SLOT_HASHES_SYSVAR = new PublicKey("SysvarS1otHashes111111111111111111111111111");
 const house = new PublicKey('Gt74tMkBPNXoUQSYGm8SzBBaqPCVXHsSQ9JwWPZcbay1');
 const programId = new PublicKey('5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r');
@@ -22,7 +21,9 @@ const ratio = 5
 
 const Dice = () => {
     const [betSizes, setBetSizes] = useState([0.0001])
+    const [multipliers, setMultipliers] = useState([2])
     const [betSize, setBetSize] = useState(0.0001);
+    const [reward, setReward] = useState(null)
     const [multiplier, setMultiplier] = useState(2);
     const [probability, setProbability] = useState(0);
     const [message, setMessage] = useState('');
@@ -50,12 +51,34 @@ const Dice = () => {
         return prob
     }
 
+    function recomputeReward() {
+        const r = betSize * multiplier
+        setReward(r)
+        return r
+    }
+
+    function recomputeBalances() {
+        connection.getBalance(wallet.publicKey).then(balance => {
+            console.log('User balance:', balance);
+            setUserBalance(balance)
+        });
+
+        connection.getBalance(reserveKeyPDA).then(balance => {
+            console.log('Reserve key balance:', balance);
+            setReserveKeyBalance(balance)
+        })
+    }
+
     function randomInteger(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
     function getMaxBetSize(reserveKeyBalance) {
         return reserveKeyBalance / ratio / 2;
+    }
+
+    function getMaxMultiplier(reserveKeyBalance, betSize) {
+        return reserveKeyBalance / ratio / betSize / web3.LAMPORTS_PER_SOL
     }
 
     async function getWinLose(tx) {
@@ -97,6 +120,11 @@ const Dice = () => {
                 systemProgram: web3.SystemProgram.programId,
                 slotHashes: SLOT_HASHES_SYSVAR
             }
+            // for (let value of [wallet.publicKey, reservePDA, reserveKeyPDA, house, web3.SystemProgram.programId, SLOT_HASHES_SYSVAR] ) {
+            //     const accountInfo = await connection.getAccountInfo(value, 'confirmed');
+            //     console.log(value.toBase58(), " account info: ", accountInfo);
+            // }
+
 
             // Call the roll_dice function
             const setup = await program.methods.rollDice(seed, mult, bet, reserveKeyBump).accounts(accounts)
@@ -157,6 +185,7 @@ const Dice = () => {
             }
             console.log('Transaction signature:', tx);
 
+            recomputeBalances()
             // const tx = await setup.signers([]).rpc();
 
         } catch (error) {
@@ -171,29 +200,42 @@ const Dice = () => {
             const provider = new AnchorProvider(connection, wallet);
             const program = new Program(idl, provider);
             setProgram(program);
-
-            connection.getBalance(wallet.publicKey).then(balance => {
-                console.log('User balance:', balance);
-                setUserBalance(balance)
-            });
-
-            connection.getBalance(reserveKeyPDA).then(balance => {
-                console.log('Reserve key balance:', balance);
-                setReserveKeyBalance(balance)
-            })
+            recomputeBalances();
         }
     }, [wallet, connection]);
 
     useEffect(() => {
         recomputeProbability()
+        recomputeReward()
     }, [betSize, multiplier])
+
+    useEffect(() => {
+        const maxMultiplier = getMaxMultiplier(reserveKeyBalance, betSize)
+        const minMultiplier = 2;
+        const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
+        let multipliers = []
+        console.log({maxMultiplier, minMultiplier, stepSize})
+        if (stepSize < 1) {
+            for (let m = minMultiplier; m < maxMultiplier; m++) {
+                multipliers.push(m)
+            }
+        } else {
+            for (let m = minMultiplier; m < maxMultiplier; m+= stepSize) {
+                multipliers.push(m)
+            }
+        }
+        setMultipliers(multipliers)
+        setMultiplier(multipliers[0])
+
+    }, [betSize])
 
     useEffect(() => {
         const numIntervals = 6;
         const maxBet = getMaxBetSize(reserveKeyBalance)
+        const minBet = 100000
         // Calculate the logarithmic step size
         const logMaxBet = Math.log(maxBet);
-        const logMinBet = Math.log(100000);
+        const logMinBet = Math.log(minBet);
         const stepSize = (logMaxBet - logMinBet) / (numIntervals - 1);
 
         console.log({logMaxBet, logMinBet, stepSize})
@@ -201,36 +243,18 @@ const Dice = () => {
         const sizes = [];
         for (let i = 0; i < numIntervals; i++) {
             const logBetSize = logMinBet + i * stepSize;
-            const betSize = Math.round(Math.exp(logBetSize));
+            const betSize = Math.floor(Math.exp(logBetSize) / minBet) * minBet
+            // const betSize = Math.round(Math.exp(logBetSize));
             sizes.push(betSize / web3.LAMPORTS_PER_SOL);
         }
 
         setBetSizes(sizes)
+        setBetSize(sizes[0])
         // TODO: make this more reload after every bet
     }, [reserveKeyBalance])
 
     useEffect(() => {
         const checkNetwork = async () => {
-            // try {
-            //     const genesisHash = await connection.getGenesisHash();
-            //     switch (genesisHash) {
-            //         case '5eykt4UsFv8P8NJdTREpStqxDsh5mJbyomd9T7wv2y1D':
-            //             setNetwork('Mainnet');
-            //             break;
-            //         case '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY':
-            //             setNetwork('Testnet');
-            //             break;
-            //         case 'EtWTRABZaYq6iMFeYKouRu166VU2B5mtDZvA9jyY6yAy':
-            //             setNetwork('Devnet');
-            //             break;
-            //         default:
-            //             setNetwork('Unknown');
-            //             break;
-            //     }
-            // } catch (error) {
-            //     console.error('Failed to check network:', error);
-            // }
-
 
             try {
                 // const version = await connection.getVersion();
@@ -277,12 +301,22 @@ const Dice = () => {
             </FormControl>
             {probability && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    Win Probability: {probability * 100}%
+                    Win Probability: {probability.toFixed(5) * 100}%
+                </Typography>
+            )}
+            {reward && (
+                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
+                    Reward: {reward.toFixed(5)} SOL
                 </Typography>
             )}
             {userBalance && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     User Balance: {userBalance / web3.LAMPORTS_PER_SOL}
+                </Typography>
+            )}
+            {reserveKeyBalance && (
+                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
+                    Casino Balance: {reserveKeyBalance / web3.LAMPORTS_PER_SOL}
                 </Typography>
             )}
             { isTestnet && connected ? (
