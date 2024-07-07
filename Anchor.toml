@@ -7,11 +7,19 @@ skip-lint = false
 [programs.localnet]
 dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
 
+[programs.devnet]
+dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
+
+[programs.testnet]
+dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+#cluster = "Localnet"
+#cluster = "https://api.devnet.solana.com"
+cluster = "https://api.testnet.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

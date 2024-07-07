@@ -6,9 +6,10 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import '@solana/wallet-adapter-react-ui/styles.css';
+import { clusterApiUrl } from '@solana/web3.js';
 
 
-const network = 'https://api.devnet.solana.com';
+const network = 'https://api.testnet.solana.com';
 
 
 function App() {
