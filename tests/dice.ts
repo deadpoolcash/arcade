@@ -24,7 +24,7 @@ describe("dice", () => {
             program.programId
         );
 
-        // console.log(anchor.utils.bytes.utf8.encode("buy-ticket"), owner.publicKey, owner.publicKey.toBuffer(), roundSeed, ticketSeed, ticketBump)
+        // console.log({reserveKeyPDA, reserveKeyBump})
         return {reserveKeyPDA, reserveKeyBump}
     }
 
@@ -36,7 +36,7 @@ describe("dice", () => {
             program.programId
         );
 
-        // console.log(anchor.utils.bytes.utf8.encode("buy-ticket"), owner.publicKey, owner.publicKey.toBuffer(), roundSeed, ticketSeed, ticketBump)
+        // console.log({reservePDA, reserveBump})
         return {reservePDA, reserveBump}
     }
 
@@ -350,7 +350,7 @@ describe("dice", () => {
         let win_count = 0
         let lose_count = 0
         let unknown_count = 0
-        const runs = 100
+        const runs = 1000
 
         // console.log({reservePDA, reserveKeyPDA, wallet}, "bet_size", "multiplier", house.publicKey)
 
@@ -410,10 +410,11 @@ describe("dice", () => {
                 console.log("Unexpected path");
             }
         }
+        const deviation = (win_count / runs) - (threshold / 10_000)
 
-        console.log({win_count, lose_count, unknown_count, threshold, epsilon})
-        assert.ok((win_count / runs) - (threshold / 10_000) <= epsilon)
-        assert.ok((win_count / runs) - (threshold / 10_000) >= -epsilon)
+        console.log({win_count, lose_count, unknown_count, threshold, epsilon, deviation})
+        assert.ok(deviation <= epsilon)
+        assert.ok(deviation >= -epsilon)
         assert.ok(win_count + lose_count == runs)
         assert.ok(unknown_count == 0)
     });
