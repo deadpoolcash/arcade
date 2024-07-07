@@ -1,7 +1,7 @@
 // src/Solana.js
 import React, { useEffect, useState } from 'react';
 import {PublicKey, TransactionMessage, VersionedTransaction} from '@solana/web3.js';
-import { AnchorProvider, Program, web3, BN, utils } from '@coral-xyz/anchor';
+import {AnchorProvider, Program, web3, BN, utils, getProvider} from '@coral-xyz/anchor';
 import { Button, MenuItem, Select, InputLabel, FormControl, Typography, Container } from '@mui/material';
 import {useAnchorWallet, useConnection, useWallet} from '@solana/wallet-adapter-react';
 import { clusterApiUrl } from '@solana/web3.js';
@@ -58,6 +58,25 @@ const Dice = () => {
         return reserveKeyBalance / ratio / 2;
     }
 
+    async function getWinLose(tx) {
+        await connection.confirmTransaction(tx, 'confirmed');
+
+        // Fetch the transaction details
+        const txDetails = await connection.getTransaction(tx, {
+            commitment: "confirmed"
+        });
+
+        console.log({txDetails})
+        // Inspect the logs
+        const logs = txDetails.meta.logMessages;
+        console.log({logs});
+        const transactionFee = txDetails.meta.fee;
+
+        // Determine which path was taken
+        const winLog = logs.find(log => log.includes("Win!"));
+        return !!winLog
+    }
+
     const handlePlaceBet = async () => {
         if (!program) {
             setMessage('Please select a wallet')
@@ -82,54 +101,61 @@ const Dice = () => {
             // Call the roll_dice function
             const setup = await program.methods.rollDice(seed, mult, bet, reserveKeyBump).accounts(accounts)
 
-            // simulate tx
-            const ix = await setup.instruction();
-            const recentBlockhash = (await connection.getLatestBlockhash()).blockhash
-            console.log({recentBlockhash, seed, bet, mult})
-            // Create the message
-            const message = new TransactionMessage({
-                payerKey: wallet.publicKey,
-                recentBlockhash: recentBlockhash,
-                instructions: [ix],
-            }).compileToV0Message();
+            // // simulate tx
+            // const ix = await setup.instruction();
+            // const recentBlockhash = (await connection.getLatestBlockhash()).blockhash
+            // console.log({recentBlockhash, seed, bet, mult})
+            // // Create the message
+            // const message = new TransactionMessage({
+            //     payerKey: wallet.publicKey,
+            //     recentBlockhash: recentBlockhash,
+            //     instructions: [ix],
+            // }).compileToV0Message();
+            //
+            // const tx = new VersionedTransaction(message);
+            //
+            // const config = {
+            //     // sigVerify: false,
+            //     accounts: {
+            //         addresses: [
+            //             wallet.publicKey.toBase58(),
+            //             reservePDA.toBase58(),
+            //             reserveKeyPDA.toBase58(),
+            //             house.toBase58(),
+            //             web3.SystemProgram.programId.toBase58(),
+            //             SLOT_HASHES_SYSVAR.toBase58()
+            //         ],
+            //         encoding: "base64"
+            //     },
+            //     commitment: 'confirmed',
+            //     replaceRecentBlockhash: true
+            // }
+            // console.log({tx, config})
+            // const { value } = await connection.simulateTransaction(tx, config);
+            // console.log({value})
+            //
+            // if (value.err) {
+            //     if (typeof value.err === 'object') {
+            //         for (const [key, val] of Object.entries(value.err)) {
+            //             if (value.err.hasOwnProperty(key)) {
+            //                 console.error(`${key}: ${val}`);
+            //                 setMessage('Error: ' + key)
+            //             }
+            //         }
+            //         console.error(value.logs)
+            //     }
+            //     return
+            // }
 
-            const tx = new VersionedTransaction(message);
-
-            const config = {
-                // sigVerify: false,
-                accounts: {
-                    addresses: [
-                        wallet.publicKey.toBase58(),
-                        reservePDA.toBase58(),
-                        reserveKeyPDA.toBase58(),
-                        house.toBase58(),
-                        web3.SystemProgram.programId.toBase58(),
-                        SLOT_HASHES_SYSVAR.toBase58()
-                    ],
-                    encoding: "base64"
-                },
-                commitment: 'confirmed',
-                replaceRecentBlockhash: true
-            }
-            console.log({tx, config})
-            const { value } = await connection.simulateTransaction(tx, config);
-            console.log({value})
-
-            if (value.err) {
-                if (typeof value.err === 'object') {
-                    for (const [key, val] of Object.entries(value.err)) {
-                        if (value.err.hasOwnProperty(key)) {
-                            console.error(`${key}: ${val}`);
-                            setMessage('Error: ' + key)
-                        }
-                    }
-                    console.error(value.logs)
-                }
+            const tx = await setup.signers([]).rpc();
+            setMessage('Bet placed successfully!');
+            const win = await getWinLose(tx)
+            if (win) {
+                setMessage("You're a WINNER! You won " + betSize * multiplier + " SOL")
             } else {
-                const tx = await setup.signers([]).rpc();
-                setMessage('Bet placed successfully!');
-                console.log('Transaction signature:', tx);
+                setMessage("You're a loser. Give me more money.")
             }
+            console.log('Transaction signature:', tx);
 
             // const tx = await setup.signers([]).rpc();
 
