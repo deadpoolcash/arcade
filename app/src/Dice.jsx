@@ -275,7 +275,10 @@ const Dice = () => {
     return (
         <Container>
             <Typography variant="h4" gutterBottom>
-                Dice Game (Testnet)
+                🎲 Hyper Dice 🎲
+            </Typography>
+            <Typography variant="h5" gutterBottom>
+                (Testnet)
             </Typography>
             <FormControl fullWidth margin="normal">
                 <InputLabel>Bet Size (SOL)</InputLabel>
@@ -317,14 +320,9 @@ const Dice = () => {
                     Casino Balance: {(reserveKeyBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
                 </Typography>
             )}
-            {txLink && (
-                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    <a href={txLink} target="_blank" rel="noopener noreferrer">See Your Transaction Here In 30s</a>
-                </Typography>
-            )}
             { connected ? (
                 <Button variant="contained" color="primary" onClick={handlePlaceBet} fullWidth>
-                    Place Bet
+                    Roll Dice
                 </Button> )
                 : (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
@@ -336,6 +334,12 @@ const Dice = () => {
                     {message}
                 </Typography>
             )}
+            {txLink && (
+                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
+                    <a href={txLink} target="_blank" rel="noopener noreferrer">See Your Transaction Here In 30s</a>
+                </Typography>
+            )}
+
         </Container>
     )
 };

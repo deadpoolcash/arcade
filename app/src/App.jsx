@@ -7,9 +7,9 @@ import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adap
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import '@solana/wallet-adapter-react-ui/styles.css';
 import { clusterApiUrl } from '@solana/web3.js';
+import header from './assets/header.png'
 
-
-const network = 'https://api.testnet.solana.com';
+const network = clusterApiUrl('testnet')
 
 
 function App() {
@@ -20,14 +20,13 @@ function App() {
 
   return (
     <>
-
         <ConnectionProvider endpoint={network}>
             <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>
                     <WalletMultiButton style={{}} />
                     <div className="App">
                         <header className="App-header">
-                            <h1>Deadpool Casino</h1>
+                            <img src={header} className="img-fluid" alt={"header"} />
                             <Dice />
                         </header>
                     </div>
