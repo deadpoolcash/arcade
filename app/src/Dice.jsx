@@ -23,14 +23,13 @@ const Dice = () => {
     const [betSizes, setBetSizes] = useState([0.0001])
     const [multipliers, setMultipliers] = useState([2])
     const [betSize, setBetSize] = useState(0.0001);
-    const [reward, setReward] = useState(null)
+    const [reward, setReward] = useState(0)
     const [multiplier, setMultiplier] = useState(2);
     const [probability, setProbability] = useState(0);
     const [message, setMessage] = useState('');
-    const [userBalance, setUserBalance] = useState(null)
-    const [reserveKeyBalance, setReserveKeyBalance] = useState(null)
+    const [userBalance, setUserBalance] = useState(0)
+    const [reserveKeyBalance, setReserveKeyBalance] = useState(0)
     const [program, setProgram] = useState(null);
-    const [isTestnet, setIsTestnet] = useState(false);
 
     const wallet = useAnchorWallet();
     const { connected } = useWallet();
@@ -58,15 +57,69 @@ const Dice = () => {
     }
 
     function recomputeBalances() {
-        connection.getBalance(wallet.publicKey).then(balance => {
-            console.log('User balance:', balance);
-            setUserBalance(balance)
-        });
-
         connection.getBalance(reserveKeyPDA).then(balance => {
             console.log('Reserve key balance:', balance);
             setReserveKeyBalance(balance)
         })
+
+        connection.getBalance(wallet.publicKey).then(balance => {
+            console.log('User balance:', balance);
+            setUserBalance(balance)
+        });
+    }
+
+    function recomputeBetSizes() {
+        if (reserveKeyBalance === 0) {
+            setBetSizes([0])
+            setBetSize(0)
+            return
+        }
+
+        const numIntervals = 6;
+        const maxBet = getMaxBetSize(reserveKeyBalance)
+        const minBet = 100000
+        // Calculate the logarithmic step size
+        const logMaxBet = Math.log(maxBet);
+        const logMinBet = Math.log(minBet);
+        const stepSize = (logMaxBet - logMinBet) / (numIntervals - 1);
+
+        console.log({logMaxBet, logMinBet, stepSize})
+        // Generate the bet sizes
+        const sizes = [];
+        for (let i = 0; i < numIntervals; i++) {
+            const logBetSize = logMinBet + i * stepSize;
+            const betSize = Math.floor(Math.exp(logBetSize) / minBet) * minBet
+            // const betSize = Math.round(Math.exp(logBetSize));
+            sizes.push(betSize / web3.LAMPORTS_PER_SOL);
+        }
+
+        setBetSizes(sizes)
+        setBetSize(sizes[0])
+    }
+
+    function recomputeMultipliers() {
+        if (reserveKeyBalance === 0) {
+            setMultipliers([0])
+            setMultiplier(0)
+            return
+        }
+        const maxMultiplier = getMaxMultiplier(reserveKeyBalance, betSize)
+        const minMultiplier = 2;
+        const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
+        let multipliers = []
+        console.log({maxMultiplier, minMultiplier, stepSize})
+        if (stepSize < 1) {
+            for (let m = minMultiplier; m < maxMultiplier; m++) {
+                multipliers.push(m)
+            }
+        } else {
+            for (let m = minMultiplier; m < maxMultiplier; m+= stepSize) {
+                multipliers.push(m)
+            }
+        }
+        setMultipliers(multipliers)
+        setMultiplier(multipliers[0])
+
     }
 
     function randomInteger(min, max) {
@@ -210,69 +263,13 @@ const Dice = () => {
     }, [betSize, multiplier])
 
     useEffect(() => {
-        const maxMultiplier = getMaxMultiplier(reserveKeyBalance, betSize)
-        const minMultiplier = 2;
-        const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
-        let multipliers = []
-        console.log({maxMultiplier, minMultiplier, stepSize})
-        if (stepSize < 1) {
-            for (let m = minMultiplier; m < maxMultiplier; m++) {
-                multipliers.push(m)
-            }
-        } else {
-            for (let m = minMultiplier; m < maxMultiplier; m+= stepSize) {
-                multipliers.push(m)
-            }
-        }
-        setMultipliers(multipliers)
-        setMultiplier(multipliers[0])
-
+        recomputeMultipliers()
     }, [betSize])
 
     useEffect(() => {
-        const numIntervals = 6;
-        const maxBet = getMaxBetSize(reserveKeyBalance)
-        const minBet = 100000
-        // Calculate the logarithmic step size
-        const logMaxBet = Math.log(maxBet);
-        const logMinBet = Math.log(minBet);
-        const stepSize = (logMaxBet - logMinBet) / (numIntervals - 1);
-
-        console.log({logMaxBet, logMinBet, stepSize})
-        // Generate the bet sizes
-        const sizes = [];
-        for (let i = 0; i < numIntervals; i++) {
-            const logBetSize = logMinBet + i * stepSize;
-            const betSize = Math.floor(Math.exp(logBetSize) / minBet) * minBet
-            // const betSize = Math.round(Math.exp(logBetSize));
-            sizes.push(betSize / web3.LAMPORTS_PER_SOL);
-        }
-
-        setBetSizes(sizes)
-        setBetSize(sizes[0])
+        recomputeBetSizes()
         // TODO: make this more reload after every bet
     }, [reserveKeyBalance])
-
-    useEffect(() => {
-        const checkNetwork = async () => {
-
-            try {
-                // const version = await connection.getVersion();
-                const endpoint = clusterApiUrl('testnet');
-                if (connection.rpcEndpoint === endpoint) {
-                    setIsTestnet(true);
-                } else {
-                    setIsTestnet(false);
-                }
-                console.log(connection.rpcEndpoint)
-            } catch (error) {
-                console.error('Failed to check network:', error);
-            }
-        };
-
-        checkNetwork();
-    }, [connection]);
-
 
     return (
         <Container>
@@ -304,28 +301,28 @@ const Dice = () => {
                     Win Probability: {probability.toFixed(5) * 100}%
                 </Typography>
             )}
-            {reward && (
+            {reward > 0 && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     Reward: {reward.toFixed(5)} SOL
                 </Typography>
             )}
-            {userBalance && (
+            {userBalance > 0 && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     User Balance: {(userBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
                 </Typography>
             )}
-            {reserveKeyBalance && (
+            {reserveKeyBalance > 0 && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     Casino Balance: {(reserveKeyBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
                 </Typography>
             )}
-            { isTestnet && connected ? (
+            { connected ? (
                 <Button variant="contained" color="primary" onClick={handlePlaceBet} fullWidth>
                     Place Bet
                 </Button> )
                 : (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    Please connect your wallet to testnet
+                    Please connect your wallet to play
                 </Typography>
             )}
             {message && (
