@@ -29,6 +29,7 @@ const Dice = () => {
     const [message, setMessage] = useState('');
     const [userBalance, setUserBalance] = useState(0)
     const [reserveKeyBalance, setReserveKeyBalance] = useState(0)
+    const [txLink, setTxLink] = useState(null)
     const [program, setProgram] = useState(null);
 
     const wallet = useAnchorWallet();
@@ -237,7 +238,7 @@ const Dice = () => {
                 setMessage("You're a loser. Give me more money.")
             }
             console.log('Transaction signature:', tx);
-
+            setTxLink('https://solscan.io/tx/' + tx + '?cluster=testnet')
             recomputeBalances()
             // const tx = await setup.signers([]).rpc();
 
@@ -314,6 +315,11 @@ const Dice = () => {
             {reserveKeyBalance > 0 && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     Casino Balance: {(reserveKeyBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
+                </Typography>
+            )}
+            {txLink && (
+                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
+                    <a href={txLink} target="_blank" rel="noopener noreferrer">See Your Transaction Here In 30s</a>
                 </Typography>
             )}
             { connected ? (
