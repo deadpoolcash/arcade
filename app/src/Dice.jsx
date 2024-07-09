@@ -275,7 +275,7 @@ const Dice = () => {
     return (
         <Container>
             <Typography variant="h4" gutterBottom>
-                🎲 Hyper Dice 🎲
+                🎲 Get Lucky 🎲
             </Typography>
             <Typography variant="h5" gutterBottom>
                 (Testnet)
