@@ -1,7 +1,6 @@
 import Dice from './Dice.jsx'
 import './App.css'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-// import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -10,7 +9,6 @@ import { clusterApiUrl } from '@solana/web3.js';
 import header from './assets/header.png'
 
 const network = clusterApiUrl('testnet')
-
 
 function App() {
   const wallets = [
