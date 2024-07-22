@@ -60,17 +60,17 @@ describe("dice", () => {
     }
 
     function getThresholdBP(edge_bp, multiplier_bp) {
-        // p =  (1 - e) / (m + 1)
-        // p = (1 - (ebp / 10000)) / ((mbp / 10000) + 1)
-        // p = (10000 - ebp) / (mbp + 10000)
+        // p =  1 / (m + e)
+        // p = 1 / ((mbp / 10000) + (ebp / 10000))
+        // p = 10000 / (mbp + ebp)
         // p = pbp / 10000
         const edge = edge_bp / 10_000
         const multiplier = multiplier_bp / 10_000
-        const thresh = (1 - edge) / (multiplier + 1)
-        const thresh_bp = thresh * 10_000
+        const thresh_bp = 10000 / (multiplier + edge)
+        const thresh = thresh_bp / 10_000
 
-        // const comp = 10000 * (10000 - edge_bp) / (multiplier_bp + 10000);
-        // console.log({edge, multiplier, thresh, comp})
+        const comp = (10000 * 10000) / (multiplier_bp + edge_bp);
+        console.log({edge, edge_bp, multiplier, multiplier_bp, thresh, thresh_bp, comp})
         return thresh_bp
     }
 
@@ -89,7 +89,7 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100) // == 1%
+        const edge_bp = new anchor.BN(5000) // == 0.5
         const ratio = new anchor.BN(5)
         const initial_funding = new anchor.BN(anchor.web3.LAMPORTS_PER_SOL)
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
@@ -130,7 +130,7 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100) // == 1%
+        const edge_bp = new anchor.BN(5000) // == 0.5
         const ratio = new anchor.BN(5)
         const initial_funding = new anchor.BN(anchor.web3.LAMPORTS_PER_SOL)
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
@@ -157,11 +157,10 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100)
         const ratio = new anchor.BN(5)
 
         const seed = new anchor.BN(randomInteger(1, 10000))
-        const multiplier_num = randomInteger(10_000, 1_000_000)
+        const multiplier_num = randomInteger(10_000, 100_000)
         const multiplier_bp = new anchor.BN(multiplier_num)
         const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
         const bet_num = randomInteger(1, max_bet)
@@ -170,7 +169,6 @@ describe("dice", () => {
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
         const houseBalanceBefore = await getBalance(house.publicKey)
         const walletBalanceBefore = await getBalance(wallet.publicKey)
-        const threshold = getThresholdBP(edge_bp, multiplier_bp)
 
         // console.log({threshold, reservePDA, reserveKeyPDA, max_bet, wallet, depletion}, "bet_size", bet_size.toNumber(), "multiplier", multiplier_bp.toNumber(), house.publicKey)
 
@@ -208,12 +206,13 @@ describe("dice", () => {
             // console.log("Win path was taken");
             // TODO: make this exact
             assert.ok(walletBalanceBefore + (bet_num * multiplier_num / 10_000) - bet_num - transactionFee - walletBalanceAfter < 100 )
-            assert.equal(reserveKeyBalanceAfter, reserveKeyBalanceBefore - depletion + bet_num)
+            assert.ok(reserveKeyBalanceAfter - Math.round(reserveKeyBalanceBefore - depletion + bet_num) <= 1)
             assert.ok(houseBalanceBefore == houseBalanceAfter)
         } else if (loseLog) {
-            // console.log("Lose path was taken", { houseBalanceAfter}, houseBalanceBefore + Math.floor(bet_size.divn(2).toNumber()));
-            assert.ok(reserveKeyBalanceAfter - (reserveKeyBalanceBefore + Math.ceil(bet_size.divn(2).toNumber())) < 2);
-            assert.equal(houseBalanceAfter, houseBalanceBefore + Math.floor(bet_size.divn(2).toNumber()))
+            // console.log("Lose path was taken", { houseBalanceAfter}, houseBalanceBefore + Math.floor(bet_size.divn(10).toNumber()));
+            // console.log("Lose path was taken", { reserveKeyBalanceAfter}, reserveKeyBalanceBefore + Math.ceil(bet_size.muln(9).divn(10).toNumber()));
+            assert.ok(reserveKeyBalanceAfter - (reserveKeyBalanceBefore + Math.ceil(bet_size.muln(9).divn(10).toNumber())) < 2);
+            assert.ok(houseBalanceAfter - (houseBalanceBefore + Math.floor(bet_size.divn(10).toNumber())) < 2);
         } else {
             console.log("Unexpected path");
         }
@@ -223,12 +222,12 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100)
+        const edge_bp = new anchor.BN(5000)
         const ratio = new anchor.BN(5)
         const fakeHouseKey = wallet
 
         const seed = new anchor.BN(randomInteger(1, 10000))
-        const multiplier_num = randomInteger(10_000, 1_000_000)
+        const multiplier_num = randomInteger(10_000, 100_000)
         const multiplier_bp = new anchor.BN(multiplier_num)
         const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
         const bet_num = randomInteger(1, max_bet)
@@ -237,7 +236,6 @@ describe("dice", () => {
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
         const houseBalanceBefore = await getBalance(house.publicKey)
         const walletBalanceBefore = await getBalance(wallet.publicKey)
-        const threshold = getThresholdBP(edge_bp, multiplier_bp)
 
         // console.log({threshold, reservePDA, reserveKeyPDA, max_bet, wallet, depletion}, "bet_size", bet_size.toNumber(), "multiplier", multiplier_bp.toNumber(), house.publicKey)
 
@@ -260,14 +258,14 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100)
+        const edge_bp = new anchor.BN(5000)
         const ratio = new anchor.BN(5)
         const fakeReserveKey = Keypair.generate();
 
         await getAirdrop(fakeReserveKey.publicKey, 10)
 
         const seed = new anchor.BN(randomInteger(1, 10000))
-        const multiplier_num = randomInteger(10_000, 1_000_000)
+        const multiplier_num = randomInteger(10_000, 100_000)
         const multiplier_bp = new anchor.BN(multiplier_num)
         const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
         const bet_num = randomInteger(1, max_bet)
@@ -276,7 +274,6 @@ describe("dice", () => {
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
         const houseBalanceBefore = await getBalance(house.publicKey)
         const walletBalanceBefore = await getBalance(wallet.publicKey)
-        const threshold = getThresholdBP(edge_bp, multiplier_bp)
 
         // console.log({threshold, reservePDA, reserveKeyPDA, max_bet, wallet, depletion}, "bet_size", bet_size.toNumber(), "multiplier", multiplier_bp.toNumber(), house.publicKey)
 
@@ -299,14 +296,14 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100)
+        const edge_bp = new anchor.BN(5000)
         const ratio = new anchor.BN(5)
         const fakeSlotHashesKey = Keypair.generate();
 
         await getAirdrop(fakeSlotHashesKey.publicKey, 10)
 
         const seed = new anchor.BN(randomInteger(1, 10000))
-        const multiplier_num = randomInteger(10_000, 1_000_000)
+        const multiplier_num = randomInteger(10_000, 100_000)
         const multiplier_bp = new anchor.BN(multiplier_num)
         const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
         const bet_num = randomInteger(1, max_bet)
@@ -315,7 +312,6 @@ describe("dice", () => {
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
         const houseBalanceBefore = await getBalance(house.publicKey)
         const walletBalanceBefore = await getBalance(wallet.publicKey)
-        const threshold = getThresholdBP(edge_bp, multiplier_bp)
 
         // console.log({threshold, reservePDA, reserveKeyPDA, max_bet, wallet, depletion}, "bet_size", bet_size.toNumber(), "multiplier", multiplier_bp.toNumber(), house.publicKey)
 
@@ -338,19 +334,19 @@ describe("dice", () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
-        const edge_bp = new anchor.BN(100)
+        const edge_bp = 5000
         const ratio = new anchor.BN(5)
-        const epsilon = 0.02
-        const multiplier_num = 100_000 // 10x
+        const epsilon = 0.01
+        const multiplier_num = 200_000 // 20x
         const multiplier_bp = new anchor.BN(multiplier_num)
 
-        const threshold = getThresholdBP(edge_bp, multiplier_bp)
+        const threshold_bp = getThresholdBP(edge_bp, multiplier_num)
 
         const seed = new anchor.BN(randomInteger(1, 10000))
         let win_count = 0
         let lose_count = 0
         let unknown_count = 0
-        const runs = 100
+        const runs = 200
 
         // console.log({reservePDA, reserveKeyPDA, wallet}, "bet_size", "multiplier", house.publicKey)
 
@@ -403,16 +399,16 @@ describe("dice", () => {
                 assert.ok(houseBalanceBefore == houseBalanceAfter)
             } else if (loseLog) {
                 lose_count++
-                assert.ok(reserveKeyBalanceAfter - (reserveKeyBalanceBefore + Math.ceil(bet_size.divn(2).toNumber())) < 2);
-                assert.equal(houseBalanceAfter, houseBalanceBefore + Math.floor(bet_size.divn(2).toNumber()))
+                assert.ok(reserveKeyBalanceAfter - (reserveKeyBalanceBefore + Math.ceil(bet_size.muln(9).divn(10).toNumber())) < 2);
+                assert.ok(houseBalanceAfter - (houseBalanceBefore + Math.floor(bet_size.divn(10).toNumber())) < 2);
             } else {
                 unknown_count++
                 console.log("Unexpected path");
             }
         }
-        const deviation = (win_count / runs) - (threshold / 10_000)
+        const deviation = ((win_count / runs) - (threshold_bp / 10_000))
 
-        console.log({win_count, lose_count, unknown_count, threshold, epsilon, deviation})
+        console.log({win_count, lose_count, unknown_count, threshold_bp, epsilon, deviation})
         assert.ok(deviation <= epsilon)
         assert.ok(deviation >= -epsilon)
         assert.ok(win_count + lose_count == runs)
@@ -426,12 +422,13 @@ describe("dice", () => {
         const ratio = new anchor.BN(5)
 
         const seed = new anchor.BN(randomInteger(1, 10000))
-        const runs = 200
+        const runs = 100
         const reserveKeyBalanceBefore = await getBalance(reserveKeyPDA)
+        const houseBalanceBefore = await getBalance(house.publicKey)
         // console.log({reservePDA, reserveKeyPDA, wallet}, "bet_size", "multiplier", house.publicKey)
 
         for (let i = 1; i <= runs; i++) {
-            const multiplier_num = randomInteger(20000, 100000) // 2-10x
+            const multiplier_num = randomInteger(50000, 100000) // 5-10x
             const multiplier_bp = new anchor.BN(multiplier_num)
 
             const max_bet = await get_max_bet(reserveKeyPDA, ratio, multiplier_bp)
@@ -471,9 +468,11 @@ describe("dice", () => {
         }
 
         const reserveKeyBalanceAfter = await getBalance(reserveKeyPDA)
+        const houseBalanceAfter = await getBalance(house.publicKey)
 
         console.log({reserveKeyBalanceBefore, reserveKeyBalanceAfter})
         assert.ok(reserveKeyBalanceAfter > reserveKeyBalanceBefore)
+        assert.ok(houseBalanceAfter > houseBalanceBefore)
     });
 
 

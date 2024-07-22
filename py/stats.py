@@ -6,7 +6,7 @@ def simulate(multiplier, bet_size, edge, house_p):
     reserve_p = 1 - house_p
     p = 1 / (multiplier + edge)
     if random.random() < p:
-        out = (multiplier - 1) * bet_size, 0, -(multiplier - 1) * bet_size
+        out = (multiplier - 1) * bet_size, 0, (1 - multiplier) * bet_size
 #         print('Win! {}'.format(out))
     else:
         out = -bet_size, bet_size * house_p, bet_size * reserve_p
@@ -55,7 +55,8 @@ def run_simulations(n = 1000, edge = 0.2, house_p = 0.05):
 # for _ in range(100):
 #     run_simulations(np.random.randint(10, 200))
 
-run_simulations(1000000, edge=0.5, house_p=0.1)
+for i in range(1, 20):
+    run_simulations(100000, edge=i / 10, house_p=0.1)
 
 # for house_p in range(1, 6):
 #     for edge in range(20, 51, 5):

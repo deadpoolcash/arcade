@@ -9,7 +9,8 @@ declare_id!("5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r");
 const DISCRIMINATOR_LENGTH: usize = 8;
 const U64_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
-const U8_LENGTH: usize = 1;const TIMESTAMP_LENGTH: usize = 8;
+const U8_LENGTH: usize = 1;
+const TIMESTAMP_LENGTH: usize = 8;
 
 
 #[program]
@@ -106,24 +107,25 @@ pub mod dice {
         let data = slot_hashes.data.borrow();
         let most_recent = array_ref![data, 12, 8];
         let clock = Clock::get()?;
+        let timestamp = clock.unix_timestamp;
 
         // generate random number
         let mut hasher = Sha3_256::new();
         hasher.update(user_seed.to_le_bytes());
-        hasher.update(clock.unix_timestamp.to_le_bytes());
+        hasher.update(timestamp.to_le_bytes());
         hasher.update(*most_recent);
         let hashed_data = hasher.finalize();
         let hash_bytes = hashed_data[..8].try_into().map_err(|_| ErrorCode::HashConversionFailed)?;
         let winning_number = u64::from_le_bytes(hash_bytes);
-        let p = winning_number % 10_000; // 1m == 100 in bp
-        let threshold = get_threshold_bp(reserve, multiplier_bp);
+        let p = winning_number % 10_000; // 1m bp == 100
+        let threshold_bp = get_threshold_bp(reserve, multiplier_bp);
 
-        msg!("p: {:?} threshold: {:?}", p, threshold);
-        msg!("Reserve key balance - {:?} bet_size / 2 - {:?} minimum_balance - {:?}", balance, bet_size / 2, minimum_balance);
-        msg!("Reserve rent: {:?} reserve balance: {:?}", minimum_balance_reserve, reserve_balance);
+        msg!("p: {:?} - edge_bp: {:?} - threshold_bp: {:?} multiplier_bp: {:?}", p, reserve.edge_bp, threshold_bp, multiplier_bp);
+        msg!("hash inputs: user_seed {:?} - timestamp {:?} - most_recent: {:?}", user_seed, timestamp, most_recent);
+        msg!("Reserve key balance - {:?} minimum_balance - {:?}", balance, minimum_balance);
         msg!("House rent: {:?} house balance: {:?}", minimum_balance, house_balance);
 
-        if p < threshold {
+        if p < threshold_bp {
             // transfer sol from reserve to player
             msg!("Win!");
             invoke_signed(
@@ -140,13 +142,13 @@ pub mod dice {
                 signer_seeds,
             )?;
         } else {
-            // transfer half of the bet to the house
+            // transfer 10% of the bet to the house
             msg!("Lose!");
             invoke_signed(
                 &transfer(
                     &reserve_key.key(),
                     &house.key(),
-                    bet_size / 2,
+                    bet_size / 10,
                 ),
                 &[
                     reserve_key.to_account_info(),
@@ -163,12 +165,12 @@ pub mod dice {
 
 fn get_max_bet(reserve: &Account<Reserve>, balance: u64, multiplier_bp: u64) -> u64 {
 
-    return balance * 10000 / (multiplier_bp * reserve.ratio);
+    return (balance * 10_000) / (multiplier_bp * reserve.ratio);
 }
 
 fn get_threshold_bp(reserve: &Account<Reserve>, multiplier_bp: u64) -> u64 {
 
-    return 10000 * (10000 - reserve.edge_bp) / (multiplier_bp + 10000);
+    return (10_000 * 10_000) / (multiplier_bp + reserve.edge_bp);
 }
 
 #[derive(Accounts)]
