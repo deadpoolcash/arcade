@@ -131,14 +131,14 @@ pub mod dice {
         let p = winning_number % 10_000; // 1m bp == 100
         let threshold_bp = get_threshold_bp(reserve, multiplier_bp);
 
-        msg!("p: {:?} - edge_bp: {:?} - threshold_bp: {:?} multiplier_bp: {:?}", p, reserve.edge_bp, threshold_bp, multiplier_bp);
-        msg!("hash inputs: user_seed {:?} - timestamp {:?} - most_recent_blockhash[12:20]: {:?}", user_seed, timestamp, most_recent);
-        msg!("Reserve key balance - {:?} minimum_balance - {:?}", balance, minimum_balance);
-        msg!("House rent: {:?} house balance: {:?}", minimum_balance, house_balance);
+        msg!("p: {:?} - threshold_bp: {:?} - edge_bp: {:?} - multiplier_bp: {:?}", p, threshold_bp, reserve.edge_bp, multiplier_bp);
+        msg!("Hash inputs: user_seed {:?} - timestamp {:?} - most_recent_blockhash[12:20]: {:?}", user_seed, timestamp, most_recent);
+        msg!("Reserve key balance: {:?} - minimum_balance: {:?}", balance, minimum_balance);
+        msg!("House rent: {:?} - house balance: {:?}", minimum_balance, house_balance);
 
         if p < threshold_bp {
             // transfer sol from reserve to player
-            msg!("Win!");
+            msg!("Win! p < threshold {:?} < {:?}", p, threshold_bp);
             invoke_signed(
                 &transfer(
                     &reserve_key.key(),
@@ -154,7 +154,7 @@ pub mod dice {
             )?;
         } else {
             // transfer 10% of the bet to the house
-            msg!("Lose!");
+            msg!("Lose! p >= threshold {:?} >= {:?}", p, threshold_bp);
             invoke_signed(
                 &transfer(
                     &reserve_key.key(),

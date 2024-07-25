@@ -13,13 +13,17 @@ dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
 [programs.testnet]
 dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
 
+[programs.mainnet]
+dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 #cluster = "Localnet"
 #cluster = "https://api.devnet.solana.com"
-cluster = "https://api.testnet.solana.com"
+#cluster = "https://api.testnet.solana.com"
+cluster = "https://api.mainnet-beta.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

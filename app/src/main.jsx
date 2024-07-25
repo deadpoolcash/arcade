@@ -5,6 +5,7 @@ import './index.css'
 import { ThemeProvider } from '@mui/material/styles';
 
 import theme from './theme';
+import './fonts.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
