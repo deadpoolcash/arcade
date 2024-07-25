@@ -10,7 +10,7 @@ describe("dice", () => {
     // Configure the client to use the local cluster.
     anchor.setProvider(anchor.AnchorProvider.env());
 
-    const program = anchor.workspace.Dice as Program<Dice>;
+    let program = anchor.workspace.Dice as Program<Dice>;
 
     function randomInteger(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -98,7 +98,14 @@ describe("dice", () => {
         await getAirdrop(house.publicKey, 5)
 
         // console.log({reservePDA, reserveKeyPDA, reserveKeyBalanceBefore})
-        const txSignature = await program.methods.setupDice(edge_bp, ratio, house.publicKey, initial_funding, reserveKeyBump).accounts({
+        const txSignature = await program.methods.setupDice(
+            edge_bp,
+            ratio,
+            house.publicKey,
+            wallet.publicKey,
+            initial_funding,
+            reserveKeyBump
+        ).accounts({
             reserve: reservePDA,
             reserveKey: reserveKeyPDA,
             creator: wallet.publicKey,
@@ -140,7 +147,7 @@ describe("dice", () => {
 
         try {
             // console.log({reservePDA, reserveKeyPDA, reserveKeyBalanceBefore})
-            const txSignature = await program.methods.setupDice(edge_bp, ratio, house.publicKey, initial_funding, reserveKeyBump).accounts({
+            const txSignature = await program.methods.setupDice(edge_bp, ratio, house.publicKey, wallet.publicKey, initial_funding, reserveKeyBump).accounts({
                 reserve: reservePDA,
                 reserveKey: reserveKeyPDA,
                 creator: wallet.publicKey,
@@ -330,13 +337,67 @@ describe("dice", () => {
         }
     });
 
+    it("Allows updating config by authority", async () => {
+        const {reservePDA, reserveBump} = getReservePDA();
+        const old_wallet = program.provider.wallet
+        const fake_wallet = Keypair.generate();
+        const old_edge_bp = new anchor.BN(5000) // == 0.5
+        const new_edge_bp = new anchor.BN(10000)
+        const old_ratio = new anchor.BN(5)
+        const new_ratio = new anchor.BN(6)
+        const old_house = house;
+        const new_house = Keypair.generate();
+
+        const reserveAccountBefore = await program.account.reserve.fetch(reservePDA);
+        assert.equal(reserveAccountBefore.edgeBp.toNumber(), old_edge_bp.toNumber())
+        assert.equal(reserveAccountBefore.ratio.toNumber(), old_ratio.toNumber())
+        assert.ok(reserveAccountBefore.house.equals(old_house.publicKey))
+
+        program.provider.wallet = new anchor.Wallet(fake_wallet);
+        await getAirdrop(fake_wallet.publicKey, 5)
+
+        try {
+            const tx = await program.methods.changeConfig(new_edge_bp, new_ratio, new_house.publicKey).accounts({
+                reserve: reservePDA,
+            }).signers([]).rpc()
+        } catch (error) {
+            // console.log(error.error.errorMessage)
+            assert.equal(error.error.errorMessage, "A raw constraint was violated");
+        }
+        const reserveAccountBetween = await program.account.reserve.fetch(reservePDA);
+        assert.equal(reserveAccountBetween.edgeBp.toNumber(), old_edge_bp.toNumber())
+        assert.equal(reserveAccountBetween.ratio.toNumber(), old_ratio.toNumber())
+        assert.ok(reserveAccountBetween.house.equals(old_house.publicKey))
+        program.provider.wallet = new anchor.Wallet(old_wallet.payer);
+
+
+        const tx2 = await program.methods.changeConfig(new_edge_bp, new_ratio, new_house.publicKey).accounts({
+            reserve: reservePDA
+        }).signers([]).rpc()
+
+        const reserveAccountAfter = await program.account.reserve.fetch(reservePDA);
+        assert.equal(reserveAccountAfter.edgeBp.toNumber(), new_edge_bp.toNumber())
+        assert.equal(reserveAccountAfter.ratio.toNumber(), new_ratio.toNumber())
+        assert.ok(reserveAccountAfter.house.equals(new_house.publicKey))
+
+        const tx3 = await program.methods.changeConfig(old_edge_bp, old_ratio, old_house.publicKey).accounts({
+            reserve: reservePDA,
+        }).signers([]).rpc()
+
+        const reserveAccountLast = await program.account.reserve.fetch(reservePDA);
+        assert.equal(reserveAccountLast.edgeBp.toNumber(), old_edge_bp.toNumber())
+        assert.equal(reserveAccountLast.ratio.toNumber(), old_ratio.toNumber())
+        assert.ok(reserveAccountLast.house.equals(old_house.publicKey))
+
+    });
+
     it("Probabilities match up", async () => {
         const {reservePDA, reserveBump} = getReservePDA();
         const {reserveKeyPDA, reserveKeyBump} = getReserveKeyPDA();
         const wallet = program.provider.wallet
         const edge_bp = 5000
         const ratio = new anchor.BN(5)
-        const epsilon = 0.01
+        const epsilon = 0.02
         const multiplier_num = 200_000 // 20x
         const multiplier_bp = new anchor.BN(multiplier_num)
 

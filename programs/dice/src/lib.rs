@@ -11,7 +11,7 @@ const U64_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
 const U8_LENGTH: usize = 1;
 const TIMESTAMP_LENGTH: usize = 8;
-
+pub const UPDATE_AUTHORITY: Pubkey = solana_program::pubkey!("73NW3yAewSmh8FHpk4fXiaZ7CVawnedakrnpHYckTFoB");
 
 #[program]
 pub mod dice {
@@ -19,7 +19,17 @@ pub mod dice {
     use sha3::{Digest, Sha3_256};
     use super::*;
 
-    pub fn setup_dice(ctx: Context<SetupDice>, edge_bp: u64, ratio: u64, house: Pubkey, initial_funds: u64, bump: u8) -> Result<()> {
+    pub fn change_config(ctx: Context<ChangeConfig>, edge_bp: u64, ratio: u64, house: Pubkey) -> Result<()> {
+        let reserve = &mut ctx.accounts.reserve;
+
+        reserve.edge_bp = edge_bp;
+        reserve.ratio = ratio;
+        reserve.house = house;
+
+        Ok(())
+    }
+
+    pub fn setup_dice(ctx: Context<SetupDice>, edge_bp: u64, ratio: u64, house: Pubkey, update_authority: Pubkey, initial_funds: u64, bump: u8) -> Result<()> {
         let creator = &mut ctx.accounts.creator;
         let reserve = &mut ctx.accounts.reserve;
         let reserve_key = &mut ctx.accounts.reserve_key;
@@ -28,6 +38,7 @@ pub mod dice {
         reserve.ratio = ratio;
         reserve.house = house;
         reserve.reserve_key = reserve_key.key();
+        reserve.update_authority = update_authority;
         reserve.bump = ctx.bumps.reserve;
 
         let rent = Rent::get()?;
@@ -121,7 +132,7 @@ pub mod dice {
         let threshold_bp = get_threshold_bp(reserve, multiplier_bp);
 
         msg!("p: {:?} - edge_bp: {:?} - threshold_bp: {:?} multiplier_bp: {:?}", p, reserve.edge_bp, threshold_bp, multiplier_bp);
-        msg!("hash inputs: user_seed {:?} - timestamp {:?} - most_recent: {:?}", user_seed, timestamp, most_recent);
+        msg!("hash inputs: user_seed {:?} - timestamp {:?} - most_recent_blockhash[12:20]: {:?}", user_seed, timestamp, most_recent);
         msg!("Reserve key balance - {:?} minimum_balance - {:?}", balance, minimum_balance);
         msg!("House rent: {:?} house balance: {:?}", minimum_balance, house_balance);
 
@@ -174,6 +185,20 @@ fn get_threshold_bp(reserve: &Account<Reserve>, multiplier_bp: u64) -> u64 {
 }
 
 #[derive(Accounts)]
+pub struct ChangeConfig<'info> {
+    #[account(
+        mut,
+        seeds = [
+            b"reserve"
+        ],
+        bump = reserve.bump
+    )]
+    pub reserve: Account<'info, Reserve>,
+    #[account(constraint = authority.key() == reserve.update_authority || authority.key() == UPDATE_AUTHORITY)]
+    pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct SetupDice<'info> {
     #[account(
         init,
@@ -199,11 +224,12 @@ pub struct Reserve {
     pub edge_bp: u64,
     pub house: Pubkey,
     pub reserve_key: Pubkey,
+    pub update_authority: Pubkey,
     pub bump: u8
 }
 
 impl Reserve {
-    const LEN: usize = DISCRIMINATOR_LENGTH + (U64_LENGTH * 2) + (PUBLIC_KEY_LENGTH * 2) + U8_LENGTH;
+    const LEN: usize = DISCRIMINATOR_LENGTH + (U64_LENGTH * 2) + (PUBLIC_KEY_LENGTH * 3) + U8_LENGTH;
 }
 
 #[derive(Accounts)]
