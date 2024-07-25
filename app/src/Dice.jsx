@@ -10,12 +10,12 @@ import idl from './idl.json';
 
 const SLOT_HASHES_SYSVAR = new PublicKey("SysvarS1otHashes111111111111111111111111111");
 const house = new PublicKey('Gt74tMkBPNXoUQSYGm8SzBBaqPCVXHsSQ9JwWPZcbay1');
-const programId = new PublicKey('5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r');
-const reservePDA = new PublicKey('57h97DdXfDWWFJU5to4Bea9HJuQxGcRedVyE8nwdvZWe')
+const programId = new PublicKey('7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY');
+const reservePDA = new PublicKey('DUPoC5h6LAwGUuAoLzkWdnEShHPJx2bmvPqkZQU5hWbg')
 const reserveBump = 252
-const reserveKeyPDA = new PublicKey('CAXq2t6G4F7LqdZRXiqgNdQYgbf1cyhakPczMG9qsKGf')
-const reserveKeyBump = 255
-const edge = 0.01
+const reserveKeyPDA = new PublicKey('3gx2Mi1ze8VJWmUAAAEYhGeakXwGBMU2xwE6jKCNtfLM')
+const reserveKeyBump = 253
+const edge = 0.5
 const ratio = 5
 
 
@@ -46,7 +46,7 @@ const Dice = () => {
 
     function recomputeProbability() {
         // p =  (1 - e) / (m + 1)
-        const prob = (1 - edge) / (multiplier + 1)
+        const prob = (1 / (multiplier + edge))
         setProbability(prob)
         return prob
     }
@@ -76,26 +76,35 @@ const Dice = () => {
             return
         }
 
-        const numIntervals = 6;
+        const numIntervals = 16;
         const maxBet = getMaxBetSize(reserveKeyBalance)
         const minBet = 100000
         // Calculate the logarithmic step size
-        const logMaxBet = Math.log(maxBet);
-        const logMinBet = Math.log(minBet);
-        const stepSize = (logMaxBet - logMinBet) / (numIntervals - 1);
-
-        console.log({logMaxBet, logMinBet, stepSize})
+        // const logMaxBet = Math.log(maxBet);
+        // const logMinBet = Math.log(minBet);
+        // const stepSize = (logMaxBet - logMinBet) / (numIntervals - 1);
+        //
+        // console.log({logMaxBet, logMinBet, stepSize})
         // Generate the bet sizes
         const sizes = [];
+        let size = minBet
         for (let i = 0; i < numIntervals; i++) {
-            const logBetSize = logMinBet + i * stepSize;
-            const betSize = Math.floor(Math.exp(logBetSize) / minBet) * minBet
-            // const betSize = Math.round(Math.exp(logBetSize));
-            sizes.push(betSize / web3.LAMPORTS_PER_SOL);
+            // const logBetSize = logMinBet + i * stepSize;
+            // const betSize = Math.floor(Math.exp(logBetSize) / minBet) * minBet
+            // // const betSize = Math.round(Math.exp(logBetSize));
+            // sizes.push(betSize / web3.LAMPORTS_PER_SOL);
+            if (size > maxBet) {
+                break
+            } else {
+                sizes.push(size / web3.LAMPORTS_PER_SOL)
+            }
+            size *= 2
         }
 
         setBetSizes(sizes)
-        setBetSize(sizes[0])
+        if (sizes.indexOf(betSize) === -1) {
+            setBetSize(sizes[sizes.length - 1])
+        }
     }
 
     function recomputeMultipliers() {
@@ -106,18 +115,29 @@ const Dice = () => {
         }
         const maxMultiplier = getMaxMultiplier(reserveKeyBalance, betSize)
         const minMultiplier = 2;
-        const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
+        const numIntervals = 6
+        // const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
+        const stepSize = 1
         let multipliers = []
         console.log({maxMultiplier, minMultiplier, stepSize})
-        if (stepSize < 1) {
-            for (let m = minMultiplier; m < maxMultiplier; m++) {
-                multipliers.push(m)
+        let multiplier = minMultiplier
+        for (let i = 0; i < numIntervals; i++) {
+            if (multiplier > maxMultiplier) {
+                break
+            } else {
+                multipliers.push(multiplier)
             }
-        } else {
-            for (let m = minMultiplier; m < maxMultiplier; m+= stepSize) {
-                multipliers.push(m)
-            }
+            multiplier += 1
         }
+            // if (stepSize < 1) {
+        //     for (let m = minMultiplier; m < maxMultiplier; m++) {
+        //         multipliers.push(m)
+        //     }
+        // } else {
+        //     for (let m = minMultiplier; m < maxMultiplier; m+= stepSize) {
+        //         multipliers.push(m)
+        //     }
+        // }
         setMultipliers(multipliers)
         setMultiplier(multipliers[0])
 

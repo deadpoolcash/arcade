@@ -1,5 +1,5 @@
 {
-  "address": "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r",
+  "address": "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY",
   "metadata": {
     "name": "dice",
     "version": "0.1.0",
@@ -7,6 +7,61 @@
     "description": "Created with Anchor"
   },
   "instructions": [
+    {
+      "name": "change_config",
+      "discriminator": [
+        24,
+        158,
+        114,
+        115,
+        94,
+        210,
+        244,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "reserve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  101,
+                  45,
+                  49
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "edge_bp",
+          "type": "u64"
+        },
+        {
+          "name": "ratio",
+          "type": "u64"
+        },
+        {
+          "name": "house",
+          "type": "pubkey"
+        }
+      ]
+    },
     {
       "name": "roll_dice",
       "discriminator": [
@@ -39,7 +94,9 @@
                   101,
                   114,
                   118,
-                  101
+                  101,
+                  45,
+                  49
                 ]
               }
             ]
@@ -108,7 +165,9 @@
                   101,
                   114,
                   118,
-                  101
+                  101,
+                  45,
+                  49
                 ]
               }
             ]
@@ -139,6 +198,10 @@
         },
         {
           "name": "house",
+          "type": "pubkey"
+        },
+        {
+          "name": "update_authority",
           "type": "pubkey"
         },
         {
@@ -214,6 +277,10 @@
           },
           {
             "name": "reserve_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "update_authority",
             "type": "pubkey"
           },
           {
