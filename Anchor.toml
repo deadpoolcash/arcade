@@ -5,21 +5,21 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
+dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
 
 [programs.devnet]
-dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
+dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
 
 [programs.testnet]
-dice = "5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r"
+dice = "7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+#cluster = "Localnet"
 #cluster = "https://api.devnet.solana.com"
-#cluster = "https://api.testnet.solana.com"
+cluster = "https://api.testnet.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

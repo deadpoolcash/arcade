@@ -19,24 +19,24 @@ describe("dice", () => {
     function getReserveKeyPDA() {
         const [reserveKeyPDA, reserveKeyBump] = PublicKey.findProgramAddressSync(
             [
-                anchor.utils.bytes.utf8.encode("reserve-key")
+                anchor.utils.bytes.utf8.encode("reserve-key-1")
             ],
             program.programId
         );
 
-        // console.log({reserveKeyPDA, reserveKeyBump})
+        console.log({reserveKeyPDA, reserveKeyBump})
         return {reserveKeyPDA, reserveKeyBump}
     }
 
     function getReservePDA() {
         const [reservePDA, reserveBump] = PublicKey.findProgramAddressSync(
             [
-                anchor.utils.bytes.utf8.encode("reserve")
+                anchor.utils.bytes.utf8.encode("reserve-1")
             ],
             program.programId
         );
 
-        // console.log({reservePDA, reserveBump})
+        console.log({reservePDA, reserveBump})
         return {reservePDA, reserveBump}
     }
 

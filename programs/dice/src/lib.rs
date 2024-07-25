@@ -4,7 +4,7 @@ use solana_program::sysvar::slot_hashes;
 use solana_program::program::{invoke, invoke_signed};
 use solana_program::system_instruction::{transfer, create_account};
 
-declare_id!("5GEGV7oBhx4XWBsTQYoWWRdaELNN7hmt5cZ8vQZ4W65r");
+declare_id!("7Ah8WAJw7CDxwbPQono7rKaRAmZ4ymjguouz1CfHScXY");
 
 const DISCRIMINATOR_LENGTH: usize = 8;
 const U64_LENGTH: usize = 8;
@@ -44,7 +44,7 @@ pub mod dice {
         let rent = Rent::get()?;
         let minimum_balance = rent.minimum_balance(0); // No data, only lamports
 
-        let seeds = &[b"reserve-key".as_ref(), &[bump]];
+        let seeds = &[b"reserve-key-1".as_ref(), &[bump]];
         let signer_seeds = &[&seeds[..]];
 
         // create reserve key account
@@ -112,7 +112,7 @@ pub mod dice {
             ],
         )?;
 
-        let seeds = &[b"reserve-key".as_ref(), &[bump]];
+        let seeds = &[b"reserve-key-1".as_ref(), &[bump]];
         let signer_seeds = &[&seeds[..]];
 
         let data = slot_hashes.data.borrow();
@@ -189,7 +189,7 @@ pub struct ChangeConfig<'info> {
     #[account(
         mut,
         seeds = [
-            b"reserve"
+            b"reserve-1"
         ],
         bump = reserve.bump
     )]
@@ -205,7 +205,7 @@ pub struct SetupDice<'info> {
         payer = creator,
         space = Reserve::LEN,
         seeds = [
-            b"reserve"
+            b"reserve-1"
         ],
         bump
     )]
@@ -239,7 +239,7 @@ pub struct RollDice<'info> {
     #[account(
         mut,
         seeds = [
-            b"reserve"
+            b"reserve-1"
         ],
         bump = reserve.bump
     )]
