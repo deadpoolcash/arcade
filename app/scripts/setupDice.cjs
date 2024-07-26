@@ -3,7 +3,7 @@ const { clusterApiUrl, Connection, Keypair, PublicKey } = require('@solana/web3.
 const idl = require('../../target/idl/dice.json');
 
 // Configure the cluster
-const connection = new Connection(clusterApiUrl('testnet'), 'confirmed');
+const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
 
 // Load the wallet keypair
 const wallet = anchor.Wallet.local(); // Assumes you have a local wallet keypair at ~/.config/solana/id.json

@@ -17,7 +17,7 @@ const reserveKeyPDA = new PublicKey('3gx2Mi1ze8VJWmUAAAEYhGeakXwGBMU2xwE6jKCNtfL
 const reserveKeyBump = 253
 const edge = 0.5
 const ratio = 5
-
+const testnet = false
 
 const Dice = () => {
     const [betSizes, setBetSizes] = useState([0.0001])
@@ -157,13 +157,23 @@ const Dice = () => {
 
     async function getWinLose(tx) {
         await connection.confirmTransaction(tx, 'confirmed');
+        let i = 0;
+        let txDetails;
+        while (i < 5) {
+            // Fetch the transaction details
+            txDetails = await connection.getTransaction(tx, {
+                maxSupportedTransactionVersion: 0,
+                commitment: "confirmed"
+            });
 
-        // Fetch the transaction details
-        const txDetails = await connection.getTransaction(tx, {
-            commitment: "confirmed"
-        });
+            if (txDetails) {
+                break
+            }
 
-        console.log({txDetails})
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        console.log({tx, txDetails})
         // Inspect the logs
         const logs = txDetails.meta.logMessages;
         console.log({logs});
@@ -180,6 +190,7 @@ const Dice = () => {
             return
         }
         setMessage('Placing bet...');
+        setTxLink('')
         try {
             console.log({reservePDA, reserveKeyPDA, house, wallet, SLOT_HASHES_SYSVAR})
             console.log(web3.SystemProgram.programId)
@@ -258,7 +269,11 @@ const Dice = () => {
                 setMessage("You're a loser. Give me more money.")
             }
             console.log('Transaction signature:', tx);
-            setTxLink('https://solscan.io/tx/' + tx + '?cluster=testnet')
+            let link = 'https://solscan.io/tx/' + tx
+            if (testnet) {
+                link += '?cluster=testnet'
+            }
+            setTxLink(link)
             recomputeBalances()
             // const tx = await setup.signers([]).rpc();
 
