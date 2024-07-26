@@ -3,7 +3,7 @@ import './App.css'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
-    PhantomWalletAdapter,
+    // PhantomWalletAdapter,
     SolflareWalletAdapter,
     AlphaWalletAdapter,
     BitgetWalletAdapter,
@@ -26,7 +26,7 @@ const network = "https://mainnet.helius-rpc.com/?api-key=f1af8375-3f82-429d-a81b
 
 function App() {
   const wallets = [
-      new PhantomWalletAdapter(),
+      // new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new AlphaWalletAdapter(),
       new BitgetWalletAdapter(),
