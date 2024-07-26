@@ -46,9 +46,9 @@ function App() {
             <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>
                     <WalletMultiButton style={{}} />
-                    <div className="App">
-                        <header className="App-header">
-                            <img src={header} className="img-fluid" alt={"header"} />
+                    <div className="App" >
+                        <header className="App-header" >
+                            <img src={header} className="img-fluid" alt={"header"} style={{width: '70%'}} />
                             <Dice />
                         </header>
                     </div>

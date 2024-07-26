@@ -2,10 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import {PublicKey, TransactionMessage, VersionedTransaction} from '@solana/web3.js';
 import {AnchorProvider, Program, web3, BN, utils, getProvider} from '@coral-xyz/anchor';
-import { Button, MenuItem, Select, InputLabel, FormControl, Typography, Container } from '@mui/material';
+import { Button, MenuItem, Select, InputLabel, FormControl, Typography, Container, Box } from '@mui/material';
 import {useAnchorWallet, useConnection, useWallet} from '@solana/wallet-adapter-react';
 import { clusterApiUrl } from '@solana/web3.js';
 import idl from './idl.json';
+import GameInfo from "./GameInfo.jsx";
+import SquareButton from "./SquareButton.jsx";
+import ArcadeForm from "./ArcadeForm.jsx";
 
 
 const SLOT_HASHES_SYSVAR = new PublicKey("SysvarS1otHashes111111111111111111111111111");
@@ -37,11 +40,13 @@ const Dice = () => {
     const { connection } = useConnection();
 
     const handleBetSizeChange = (event) => {
-        setBetSize(event.target.value);
+        // console.log("handleBetSizeChange", event)
+        setBetSize(event);
     };
 
     const handleMultiplierChange = (event) => {
-        setMultiplier(event.target.value);
+        // console.log("handleMultiplierChange", event)
+        setMultiplier(event);
     };
 
     function recomputeProbability() {
@@ -59,12 +64,12 @@ const Dice = () => {
 
     function recomputeBalances() {
         connection.getBalance(reserveKeyPDA).then(balance => {
-            console.log('Reserve key balance:', balance);
+            // console.log('Reserve key balance:', balance);
             setReserveKeyBalance(balance)
         })
 
         connection.getBalance(wallet.publicKey).then(balance => {
-            console.log('User balance:', balance);
+            // console.log('User balance:', balance);
             setUserBalance(balance)
         });
     }
@@ -109,6 +114,7 @@ const Dice = () => {
 
     function recomputeMultipliers() {
         if (reserveKeyBalance === 0) {
+            // console.log('reserveKeyBalance === 0')
             setMultipliers([0])
             setMultiplier(0)
             return
@@ -118,16 +124,16 @@ const Dice = () => {
         const numIntervals = 6
         // const stepSize = Math.floor((maxMultiplier - minMultiplier) / 5)
         const stepSize = 1
-        let multipliers = []
-        console.log({maxMultiplier, minMultiplier, stepSize})
-        let multiplier = minMultiplier
+        let muls = []
+        // console.log({maxMultiplier, minMultiplier, stepSize})
+        let mul = minMultiplier
         for (let i = 0; i < numIntervals; i++) {
-            if (multiplier > maxMultiplier) {
+            if (mul > maxMultiplier) {
                 break
             } else {
-                multipliers.push(multiplier)
+                muls.push(mul)
             }
-            multiplier += 1
+            mul += 1
         }
             // if (stepSize < 1) {
         //     for (let m = minMultiplier; m < maxMultiplier; m++) {
@@ -138,9 +144,10 @@ const Dice = () => {
         //         multipliers.push(m)
         //     }
         // }
-        setMultipliers(multipliers)
-        setMultiplier(multipliers[0])
-
+        setMultipliers(muls)
+        if (muls.indexOf(multiplier) === -1) {
+            setMultiplier(muls[0])
+        }
     }
 
     function randomInteger(min, max) {
@@ -148,7 +155,7 @@ const Dice = () => {
     }
 
     function getMaxBetSize(reserveKeyBalance) {
-        return reserveKeyBalance / ratio / 2;
+        return (reserveKeyBalance - 1) / ratio / 2;
     }
 
     function getMaxMultiplier(reserveKeyBalance, betSize) {
@@ -173,11 +180,11 @@ const Dice = () => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log({tx, txDetails})
+        // console.log({tx, txDetails})
         // Inspect the logs
         const logs = txDetails.meta.logMessages;
         console.log({logs});
-        const transactionFee = txDetails.meta.fee;
+        // const transactionFee = txDetails.meta.fee;
 
         // Determine which path was taken
         const winLog = logs.find(log => log.includes("Win!"));
@@ -209,7 +216,6 @@ const Dice = () => {
             //     const accountInfo = await connection.getAccountInfo(value, 'confirmed');
             //     console.log(value.toBase58(), " account info: ", accountInfo);
             // }
-
 
             // Call the roll_dice function
             const setup = await program.methods.rollDice(seed, mult, bet, reserveKeyBump).accounts(accounts)
@@ -312,39 +318,32 @@ const Dice = () => {
             <Typography variant="h4" gutterBottom>
                 🎲 Get Lucky 🎲
             </Typography>
-            <Typography variant="h5" gutterBottom>
-                Alpha
+            <Typography variant="h6" gutterBottom style={{paddingBottom: '20px'}}>
+                (Alpha)
             </Typography>
-            <FormControl fullWidth margin="normal">
-                <InputLabel>Bet Size (SOL)</InputLabel>
-                <Select value={betSize} onChange={handleBetSizeChange}>
-                    {betSizes.map((size) => (
-                        <MenuItem key={size} value={size}>
-                            {size}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal">
-                <InputLabel>Multiplier</InputLabel>
-                <Select value={multiplier} onChange={handleMultiplierChange}>
-                    {multipliers.map((mult) => (
-                        <MenuItem key={mult} value={mult}>
-                            {mult}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            {probability && (
-                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    Win Probability: {probability.toFixed(5) * 100}%
-                </Typography>
-            )}
-            {reward > 0 && (
-                <Typography variant="body1" color="textSecondary" align="center" margin="normal">
-                    Reward: {reward.toFixed(5)} SOL
-                </Typography>
-            )}
+            {/*<FormControl fullWidth margin="normal">*/}
+            {/*    <InputLabel>Bet Size (SOL)</InputLabel>*/}
+            {/*    <Select value={betSize} onChange={handleBetSizeChange}>*/}
+            {/*        {betSizes.map((size) => (*/}
+            {/*            <MenuItem key={size} value={size}>*/}
+            {/*                {size}*/}
+            {/*            </MenuItem>*/}
+            {/*        ))}*/}
+            {/*    </Select>*/}
+            {/*</FormControl>*/}
+            {/*<FormControl fullWidth margin="normal">*/}
+            {/*    <InputLabel>Multiplier</InputLabel>*/}
+            {/*    <Select value={multiplier} onChange={handleMultiplierChange}>*/}
+            {/*        {multipliers.map((mult) => (*/}
+            {/*            <MenuItem key={mult} value={mult}>*/}
+            {/*                {mult}*/}
+            {/*            </MenuItem>*/}
+            {/*        ))}*/}
+            {/*    </Select>*/}
+            {/*</FormControl>*/}
+            <ArcadeForm title={"Bet Size"} onChange={handleBetSizeChange} options={betSizes} selectedOption={betSize} />
+            <ArcadeForm title={"Multiplier"} onChange={handleMultiplierChange} options={multipliers} selectedOption={multiplier} />
+            <GameInfo betSize={betSize} multiplier={multiplier} probability={probability} reward={reward} />
             {userBalance > 0 && (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     User Balance: {(userBalance / web3.LAMPORTS_PER_SOL).toFixed(5)} SOL
@@ -356,10 +355,19 @@ const Dice = () => {
                 </Typography>
             )}
             { connected ? (
-                <Button variant="contained" color="primary" onClick={handlePlaceBet} fullWidth>
-                    Roll Dice
-                </Button> )
-                : (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingTop: '20px',
+                        paddingBottom: '20px',
+                        minHeight: '9vh', // This ensures the box takes up the full viewport height
+                    }}
+                >
+                    <SquareButton onClick={handlePlaceBet}> Roll Dice </SquareButton>
+                </Box>
+                ) : (
                 <Typography variant="body1" color="textSecondary" align="center" margin="normal">
                     Please connect your wallet to play
                 </Typography>
@@ -374,9 +382,10 @@ const Dice = () => {
                     <a href={txLink} target="_blank" rel="noopener noreferrer">See Your Transaction Here In 30s</a>
                 </Typography>
             )}
-
         </Container>
     )
 };
+
+
 
 export default Dice;

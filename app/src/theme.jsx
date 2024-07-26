@@ -54,7 +54,7 @@ const theme = createTheme({
         MuiButton: {
             styleOverrides: {
                 root: {
-                    backgroundColor: 'red',
+                    backgroundColor: '#B22222',
                     color: 'white',
                 },
             },
@@ -92,6 +92,24 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundColor: '#000000', // Set the background color of the paper to black
+                },
+            },
+        },
+        MuiToggleButton: {
+            styleOverrides: {
+                root: {
+                    color: '#b22222', // Neon green text
+                    borderColor: '#b22222', // Neon green border
+                    '&.Mui-selected': {
+                        backgroundColor: '#ffffff', // Neon green background when selected
+                        color: '#000000', // Black text when selected
+                        '&:hover': {
+                            backgroundColor: '#ffffff',
+                        },
+                    },
+                    '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
                 },
             },
         },
