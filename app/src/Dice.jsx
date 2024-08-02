@@ -315,10 +315,31 @@ const Dice = () => {
 
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>
+            <Typography
+                variant="h4"
+                gutterBottom
+                sx={{
+                    fontSize: {
+                        xs: '1rem',   // extra-small devices (phones)
+                        sm: '2rem',     // small devices (tablets)
+                        md: '2.5rem',   // medium devices (landscape tablets)
+                        lg: '3rem',     // large devices (laptops/desktops)
+                    },
+            }}>
                 🎲 Get Lucky 🎲
             </Typography>
-            <Typography variant="h6" gutterBottom style={{paddingBottom: '20px'}}>
+            <Typography
+                variant="h6"
+                gutterBottom
+                sx={{
+                    paddingBottom: '20px',
+                    fontSize: {
+                        xs: '1rem',   // extra-small devices (phones)
+                        sm: '2rem',     // small devices (tablets)
+                        md: '2rem',   // medium devices (landscape tablets)
+                        lg: '2.5rem',     // large devices (laptops/desktops)
+                    },
+            }}>
                 (Alpha)
             </Typography>
             {/*<FormControl fullWidth margin="normal">*/}

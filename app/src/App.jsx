@@ -48,7 +48,7 @@ function App() {
                     <WalletMultiButton style={{}} />
                     <div className="App" >
                         <header className="App-header" >
-                            <img src={header} className="img-fluid" alt={"header"} style={{width: '70%'}} />
+                            <img src={header} className="img-fluid" alt={"header"} style={{width: '100%'}} />
                             <Dice />
                         </header>
                     </div>
